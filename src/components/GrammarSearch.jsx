@@ -32,7 +32,9 @@ const GrammarSearch = () => {
       }
 
       const data = await res.json();
-      setResult(data);
+
+      // ✅ Extract only geminiData
+      setResult(data.geminiData || null);
     } catch (err) {
       console.error(err);
       message.error("Error fetching grammar details.");
@@ -44,7 +46,7 @@ const GrammarSearch = () => {
   return (
     <div style={{ maxWidth: 600, margin: "20px auto", textAlign: "center" }}>
       <Input
-        placeholder="Enter a grammar concept (e.g., けれども)"
+        placeholder="Enter a grammar concept (e.g., Verb て-form)"
         value={concept}
         onChange={(e) => setConcept(e.target.value)}
         onPressEnter={handleSearch}
@@ -69,7 +71,7 @@ const GrammarSearch = () => {
               <Title level={5}>Examples:</Title>
               <ul>
                 {result.examples.map((ex, idx) => (
-                  <li key={idx} style={{ marginBottom: 8 }}>
+                  <li key={idx} style={{ marginBottom: 12 }}>
                     <strong>{ex.japanese}</strong> ({ex.romaji}) <br />
                     {ex.english}
                     {ex.vocab && ex.vocab.length > 0 && (
