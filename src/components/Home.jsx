@@ -2,6 +2,8 @@ import React from "react";
 import { Typography } from "antd";
 import GrammarList from "./GrammarList";
 import GrammarSearch from "./GrammarSearch";
+import { Link } from 'react-router-dom';
+import { Button } from "antd";
 
 const { Title, Paragraph } = Typography;
 
@@ -14,6 +16,9 @@ const Home = () => {
       </Paragraph>
       <div className="w-full max-w-2xl">
         <GrammarSearch />
+        <Button type="primary">
+          <Link to="/kanji">Go to Kanji Page</Link>
+      </Button>
         <GrammarList />
       </div>
     </div>
