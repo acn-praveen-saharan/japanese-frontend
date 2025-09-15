@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Card, Typography, Spin, Button, Select } from "antd";
+import { Typography, Spin, Button, Select, Card, Modal, List } from "antd";
 import { Link } from "react-router-dom";
 
 const { Title, Text } = Typography;
@@ -10,6 +10,8 @@ function KanjiCards() {
   const [filteredList, setFilteredList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterLevel, setFilterLevel] = useState("all");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedKanjiId, setSelectedKanjiId] = useState(null);
 
   useEffect(() => {
     fetch(
@@ -34,6 +36,11 @@ function KanjiCards() {
     } else {
       setFilteredList(kanjiList.filter((k) => `N${k.JLPT}` === value));
     }
+  };
+
+  const openModal = (id) => {
+    setSelectedKanjiId(id);
+    setIsModalOpen(true);
   };
 
   if (loading) {
@@ -81,14 +88,105 @@ function KanjiCards() {
             <p>
               <Text strong>On:</Text> {k.OnReadings}
             </p>
-            <div className="flex justify-between mt-2">
+            <div className="flex justify-between mt-2 items-center">
               <Text type="secondary">JLPT: N{k.JLPT}</Text>
-              <Text type="secondary">Strokes: {k.StrokeCount}</Text>
+              <Button type="link" onClick={() => openModal(k.Id)}>
+                More Details
+              </Button>
             </div>
           </Card>
         ))}
       </div>
+
+      {selectedKanjiId && (
+        <KanjiDetailsModal
+          kanjiId={selectedKanjiId}
+          visible={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+        />
+      )}
     </div>
+  );
+}
+
+// ================== Modal Component ==================
+function KanjiDetailsModal({ kanjiId, visible, onClose }) {
+  const [details, setDetails] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (kanjiId && visible) {
+      setLoading(true);
+      fetch(
+        `https://japanese-nx-gqducnd9c8d4fjbg.canadacentral-01.azurewebsites.net/api/kanji/${kanjiId}`
+      )
+        .then((res) => res.json())
+        .then((data) => {
+          setDetails(data);
+          setLoading(false);
+        })
+        .catch((err) => {
+          console.error("Error fetching details:", err);
+          setLoading(false);
+        });
+    }
+  }, [kanjiId, visible]);
+
+  return (
+    <Modal
+      title={details ? `Kanji: ${details.Kanji}` : "Kanji Details"}
+      open={visible}
+      onCancel={onClose}
+      footer={null}
+      width={700}
+    >
+      {loading ? (
+        <div className="flex justify-center items-center p-6">
+          <Spin size="large" tip="Loading details..." />
+        </div>
+      ) : details ? (
+        <div>
+          <p>
+            <Text strong>Meanings:</Text> {details.Meanings}
+          </p>
+          <p>
+            <Text strong>Additional Meaning:</Text> {details.Meaning2}
+          </p>
+          <p>
+            <Text strong>Details:</Text> {details.Details}
+          </p>
+
+          <Title level={4} className="mt-4">Examples</Title>
+          <List
+            dataSource={details.examples}
+            renderItem={(ex) => (
+              <Card key={ex.ExampleId} className="mb-4">
+                <p>
+                  <Text strong>Japanese:</Text> {ex.Japanese}
+                </p>
+                <p>
+                  <Text strong>Romaji:</Text> {ex.Romaji}
+                </p>
+                <p>
+                  <Text strong>English:</Text> {ex.English}
+                </p>
+                <Title level={5}>Vocabulary</Title>
+                <List
+                  dataSource={ex.vocab}
+                  renderItem={(v) => (
+                    <List.Item key={v.VocabId}>
+                      <Text strong>{v.Word}</Text> ({v.Romaji}) - {v.Meaning}
+                    </List.Item>
+                  )}
+                />
+              </Card>
+            )}
+          />
+        </div>
+      ) : (
+        <Text type="secondary">No details available.</Text>
+      )}
+    </Modal>
   );
 }
 
