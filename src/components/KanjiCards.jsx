@@ -1,49 +1,51 @@
-import React, { useEffect, useState } from "react";
-import { Typography, Spin, Button, Select, Card, Modal, List } from "antd";
+import React, { useState, useContext } from "react";
+import {
+  Typography,
+  Spin,
+  Button,
+  Select,
+  Card,
+  Modal,
+  List,
+} from "antd";
 import { Link } from "react-router-dom";
+import { GlobalContext } from "../context/GlobalContext";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 
 function KanjiCards() {
-  const [kanjiList, setKanjiList] = useState([]);
+  const { kanji, loading, fetchKanjiDetails, kanjiDetails } =
+    useContext(GlobalContext);
+
   const [filteredList, setFilteredList] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [filterLevel, setFilterLevel] = useState("all");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedKanjiId, setSelectedKanjiId] = useState(null);
 
-  useEffect(() => {
-    fetch(
-      "https://japanese-nx-gqducnd9c8d4fjbg.canadacentral-01.azurewebsites.net/api/kanji"
-    )
-      .then((res) => res.json())
-      .then((data) => {
-        setKanjiList(data);
-        setFilteredList(data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Error fetching kanji:", err);
-        setLoading(false);
-      });
-  }, []);
+  // Filter whenever kanji changes
+  React.useEffect(() => {
+    if (kanji && kanji.length > 0) {
+      setFilteredList(kanji);
+    }
+  }, [kanji]);
 
   const handleFilterChange = (value) => {
     setFilterLevel(value);
     if (value === "all") {
-      setFilteredList(kanjiList);
+      setFilteredList(kanji);
     } else {
-      setFilteredList(kanjiList.filter((k) => `N${k.JLPT}` === value));
+      setFilteredList(kanji.filter((k) => `N${k.JLPT}` === value));
     }
   };
 
   const openModal = (id) => {
     setSelectedKanjiId(id);
+    fetchKanjiDetails(id); // 🔹 fetch details from context
     setIsModalOpen(true);
   };
 
-  if (loading) {
+  if (loading && (!kanji || kanji.length === 0)) {
     return (
       <div className="flex justify-center items-center h-screen">
         <Spin size="large" tip="Loading Kanji..." />
@@ -71,6 +73,7 @@ function KanjiCards() {
         </div>
       </div>
 
+      {/* Grid of Kanji Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredList.map((k) => (
           <Card
@@ -98,11 +101,13 @@ function KanjiCards() {
         ))}
       </div>
 
+      {/* Modal for Kanji Details */}
       {selectedKanjiId && (
         <KanjiDetailsModal
-          kanjiId={selectedKanjiId}
           visible={isModalOpen}
           onClose={() => setIsModalOpen(false)}
+          details={kanjiDetails}
+          loading={loading}
         />
       )}
     </div>
@@ -110,28 +115,7 @@ function KanjiCards() {
 }
 
 // ================== Modal Component ==================
-function KanjiDetailsModal({ kanjiId, visible, onClose }) {
-  const [details, setDetails] = useState(null);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (kanjiId && visible) {
-      setLoading(true);
-      fetch(
-        `https://japanese-nx-gqducnd9c8d4fjbg.canadacentral-01.azurewebsites.net/api/kanji/${kanjiId}`
-      )
-        .then((res) => res.json())
-        .then((data) => {
-          setDetails(data);
-          setLoading(false);
-        })
-        .catch((err) => {
-          console.error("Error fetching details:", err);
-          setLoading(false);
-        });
-    }
-  }, [kanjiId, visible]);
-
+function KanjiDetailsModal({ visible, onClose, details, loading }) {
   return (
     <Modal
       title={details ? `Kanji: ${details.Kanji}` : "Kanji Details"}
@@ -156,7 +140,9 @@ function KanjiDetailsModal({ kanjiId, visible, onClose }) {
             <Text strong>Details:</Text> {details.Details}
           </p>
 
-          <Title level={4} className="mt-4">Examples</Title>
+          <Title level={4} className="mt-4">
+            Examples
+          </Title>
           <List
             dataSource={details.examples}
             renderItem={(ex) => (

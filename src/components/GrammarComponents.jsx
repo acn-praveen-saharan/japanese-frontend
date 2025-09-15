@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Card, Typography, List, Spin, Input, Button, message } from "antd";
-
-const { Title, Paragraph } = Typography;
+import React, { useRef, useEffect, useState, useContext } from "react";
+import { List, Spin, Input, Button, message } from "antd";
+import { GlobalContext } from "../context/GlobalContext";
 
 // ============ GrammarCard =============
 const GrammarCard = ({ grammar }) => {
@@ -50,40 +49,26 @@ const GrammarCard = ({ grammar }) => {
 
 // ============ GrammarList (infinite scroll) ============
 const GrammarList = () => {
-  const [allGrammars, setAllGrammars] = useState([]);
+  const { grammar, loading } = useContext(GlobalContext);
+
   const [displayed, setDisplayed] = useState([]);
   const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(false);
   const loaderRef = useRef(null);
   const pageSize = 10;
 
   useEffect(() => {
-    const fetchAll = async () => {
-      setLoading(true);
-      try {
-        const res = await fetch(
-          "https://japanese-nx-gqducnd9c8d4fjbg.canadacentral-01.azurewebsites.net/api/grammar"
-        );
-        const data = await res.json();
-        const reversed = data.reverse();
-        setAllGrammars(reversed);
-        setDisplayed(reversed.slice(0, pageSize));
-      } catch (e) {
-        console.error("Error fetching grammars:", e);
-      }
-      setLoading(false);
-    };
-
-    fetchAll();
-  }, []);
+    if (grammar.length > 0) {
+      setDisplayed(grammar.slice(0, pageSize));
+    }
+  }, [grammar]);
 
   useEffect(() => {
-    if (page > 1 && allGrammars.length > 0) {
+    if (page > 1 && grammar.length > 0) {
       const start = (page - 1) * pageSize;
       const end = start + pageSize;
-      setDisplayed((prev) => [...prev, ...allGrammars.slice(start, end)]);
+      setDisplayed((prev) => [...prev, ...grammar.slice(start, end)]);
     }
-  }, [page, allGrammars]);
+  }, [page, grammar]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -91,7 +76,7 @@ const GrammarList = () => {
         if (
           entries[0].isIntersecting &&
           !loading &&
-          displayed.length < allGrammars.length
+          displayed.length < grammar.length
         ) {
           setPage((prev) => prev + 1);
         }
@@ -104,7 +89,7 @@ const GrammarList = () => {
     return () => {
       if (loaderRef.current) observer.unobserve(loaderRef.current);
     };
-  }, [loading, displayed, allGrammars]);
+  }, [loading, displayed, grammar]);
 
   return (
     <div className="mt-6">
@@ -122,7 +107,7 @@ const GrammarList = () => {
       >
         {loading ? (
           <Spin />
-        ) : displayed.length < allGrammars.length ? (
+        ) : displayed.length < grammar.length ? (
           "⬇ Scroll down to load more..."
         ) : (
           "🎉 You’ve reached the end!"
@@ -134,39 +119,15 @@ const GrammarList = () => {
 
 // ============ GrammarSearch ============
 const GrammarSearch = () => {
+  const { searchGrammar, searchResult, loading } = useContext(GlobalContext);
   const [concept, setConcept] = useState("");
-  const [result, setResult] = useState(null);
-  const [loading, setLoading] = useState(false);
 
   const handleSearch = async () => {
     if (!concept.trim()) {
       message.warning("Please enter a concept to search.");
       return;
     }
-
-    setLoading(true);
-    setResult(null);
-
-    try {
-      const res = await fetch(
-        "https://japanese-nx-gqducnd9c8d4fjbg.canadacentral-01.azurewebsites.net/api/gemini",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ concept }),
-        }
-      );
-
-      if (!res.ok) throw new Error("Failed to fetch grammar details");
-
-      const data = await res.json();
-      setResult(data.geminiData || null);
-    } catch (err) {
-      console.error(err);
-      message.error("Error fetching grammar details.");
-    }
-
-    setLoading(false);
+    await searchGrammar(concept);
   };
 
   return (
@@ -191,24 +152,24 @@ const GrammarSearch = () => {
 
       {loading && <Spin className="mt-6" />}
 
-      {result && !loading && (
+      {searchResult && !loading && (
         <div className="bg-white rounded-2xl shadow-md p-6 mt-6 text-left hover:shadow-xl transition">
           <h3 className="text-xl font-semibold text-blue-700 mb-2">
-            {result.concept}
+            {searchResult.concept}
           </h3>
           <p className="mb-2">
             <span className="font-bold text-gray-800">Meaning:</span>{" "}
-            {result.meaning}
+            {searchResult.meaning}
           </p>
-          <p className="text-gray-700 mb-4">{result.details}</p>
+          <p className="text-gray-700 mb-4">{searchResult.details}</p>
 
-          {result.examples && result.examples.length > 0 && (
+          {searchResult.examples && searchResult.examples.length > 0 && (
             <div>
               <h4 className="text-lg font-medium text-pink-600 mb-2">
                 Examples:
               </h4>
               <ul className="list-disc list-inside space-y-4">
-                {result.examples.map((ex, idx) => (
+                {searchResult.examples.map((ex, idx) => (
                   <li key={idx}>
                     <span className="font-bold">{ex.japanese}</span>{" "}
                     <span className="italic text-gray-600">({ex.romaji})</span>
