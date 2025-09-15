@@ -12,7 +12,7 @@ const Home = () => {
       {/* Header */}
       <header className="w-full bg-white shadow-sm py-4 px-6 flex justify-between items-center">
         <Title level={3} className="!mb-0 !text-blue-700">
-          Japanese N4 Learning
+          Japanese Nx
         </Title>
         <nav className="flex gap-4">
           <Link to="/">
@@ -28,6 +28,11 @@ const Home = () => {
           <Link to="/">
             <Button type="link" className="!text-gray-600 hover:!text-blue-600">
               Grammar
+            </Button>
+          </Link>
+            <Link to="/examtime">
+            <Button type="link" className="!text-gray-600 hover:!text-blue-600">
+              Today's Exam
             </Button>
           </Link>
         </nav>
