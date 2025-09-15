@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState, useContext } from "react";
 import { List, Spin, Input, Button, message } from "antd";
 import { GlobalContext } from "../context/GlobalContext";
 
-// ============ GrammarCard =============
+
 const GrammarCard = ({ grammar }) => {
   if (!grammar) return null;
 
